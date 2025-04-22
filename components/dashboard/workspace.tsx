@@ -126,11 +126,11 @@ export function Workspace({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
+    <div className="h-[90vh] overflow-y-auto flex flex-col">
+      <div className="flex justify-between items-center px-4 py-2">
         <input
           type="text"
-          className="text-2xl font-bold bg-transparent text-white border-b-2 border-gray-500"
+          className="text-2xl font-bold bg-transparent text-white focus:outline-none"
           value={title}
           onChange={handleTitleChange}
           disabled={isSaving}
@@ -139,8 +139,8 @@ export function Workspace({
         <div className="flex gap-2 items-center">
           {isSaving && <span className="text-sm text-gray-500">Saving...</span>}
           <Button
-            variant="outline"
-            className="text-red-500"
+            variant="ghost"
+            className="text-red-500 hover:text-red-400"
             onClick={handleDelete}
             disabled={isSaving}
           >
@@ -149,15 +149,21 @@ export function Workspace({
         </div>
       </div>
 
-      <textarea
-        className="w-full h-72 bg-transparent text-white border-b-2 border-gray-500"
-        value={content}
-        onChange={handleContentChange}
-        disabled={isSaving}
-        placeholder="Write your note here..."
-      />
+      <div className="flex-grow overflow-auto">
+        <textarea
+          className="w-full h-full bg-transparent text-white p-4 resize-none focus:outline-none"
+          value={content}
+          onChange={handleContentChange}
+          disabled={isSaving}
+          placeholder="Write your note here..."
+        />
+      </div>
 
-      {error && <span className="text-red-500">{error}</span>}
+      {error && (
+        <div className="px-4 py-2">
+          <span className="text-red-500">{error}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -52,7 +52,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="h-screen bg-black text-gray-300 flex">
+    <div className="h-screen overflow-hidden bg-black text-gray-300 flex">
       <Sidebar
         onSelectNote={setSelectedNoteId}
         userId={userId}
