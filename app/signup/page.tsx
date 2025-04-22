@@ -24,7 +24,7 @@ export default function SignupPage() {
     setLoading(false);
 
     if (error) setError(error.message);
-    else router.push("/"); // redirect after signup
+    else router.push("/dashboard");
   };
 
   const handleGoogleLogin = async () => {
