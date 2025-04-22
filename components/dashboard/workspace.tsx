@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { FileText, X } from "lucide-react";
+import { FileText, X, Save } from "lucide-react";
 import { updateNote, getNoteById, deleteNote } from "@/app/services/notes";
 import { createSummary, getSummariesForNote } from "@/app/services/summaries";
 import { useRouter } from "next/navigation";
-import { useDebounce } from "@/hooks/useDebounce";
 
 type Summary = {
   id: string;
@@ -27,9 +26,11 @@ export function Workspace({
   onUpdateNote,
   onDeleteNote,
 }: WorkspaceProps) {
-  const [note, setNote] = useState<{ title: string; content: string } | null>(
-    null
-  );
+  const [note, setNote] = useState<{
+    title: string;
+    content: string;
+    id: string;
+  } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -40,10 +41,31 @@ export function Workspace({
   const [summarizing, setSummarizing] = useState(false);
   const [animatedContent, setAnimatedContent] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const router = useRouter();
 
-  const debouncedTitle = useDebounce(title, 2000);
-  const debouncedContent = useDebounce(content, 1200);
+  useEffect(() => {
+    const saveChanges = async () => {
+      if (!note?.id || !hasChanges) return;
+
+      try {
+        setIsSaving(true);
+        await updateNote(note.id, title || "New Note", content);
+        setHasChanges(false);
+      } catch (err) {
+        console.error("Failed to save changes:", err);
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    // Save changes before switching notes
+    return () => {
+      if (hasChanges) {
+        saveChanges();
+      }
+    };
+  }, [noteId]);
 
   useEffect(() => {
     if (!noteId) {
@@ -60,11 +82,14 @@ export function Workspace({
     const fetchNote = async () => {
       try {
         const fetchedNote = await getNoteById(noteId);
+        console.log(fetchedNote);
+
         setNote(fetchedNote);
         setTitle(fetchedNote.title);
         setContent(fetchedNote.content);
         setError("");
         setIsDeleted(false);
+        setHasChanges(false); // Reset changes flag when loading new note
       } catch (err) {
         setError("Error fetching note");
       }
@@ -83,41 +108,39 @@ export function Workspace({
     loadSummaries();
   }, [noteId]);
 
-  useEffect(() => {
-    if (!noteId || !note) return;
+  const handleSave = useCallback(async () => {
+    if (!noteId || !note || !hasChanges) return;
 
-    const finalTitle = debouncedTitle || "New Note";
-
-    if (finalTitle === note.title && debouncedContent === note.content) {
-      return;
+    try {
+      setIsSaving(true);
+      await updateNote(noteId, title || "New Note", content);
+      setNote((prev) =>
+        prev ? { ...prev, title: title || "New Note", content } : null
+      );
+      setHasChanges(false);
+      setError("");
+    } catch (err) {
+      setError("Failed to save changes");
+    } finally {
+      setIsSaving(false);
     }
+  }, [noteId, note, title, content, hasChanges]);
 
-    const autoSave = async () => {
-      try {
-        setIsSaving(true);
-        await updateNote(noteId, finalTitle, debouncedContent);
-        setNote((prev) =>
-          prev
-            ? { ...prev, title: finalTitle, content: debouncedContent }
-            : null
-        );
-        if (!debouncedTitle) {
-          setTitle("New Note");
-          onUpdateNote(noteId, "New Note");
-        }
-        setError("");
-      } catch (err) {
-        setError("Failed to save changes");
-      } finally {
-        setIsSaving(false);
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+        e.preventDefault();
+        handleSave();
       }
     };
 
-    autoSave();
-  }, [debouncedTitle, debouncedContent, noteId, note, onUpdateNote]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleSave]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
+    setHasChanges(true);
     if (noteId) {
       onUpdateNote(noteId, e.target.value);
     }
@@ -125,6 +148,7 @@ export function Workspace({
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setContent(e.target.value);
+    setHasChanges(true);
   };
 
   const handleDelete = async () => {
@@ -167,7 +191,6 @@ export function Workspace({
       setSummaries((prev) => [formattedSummary, ...prev]);
       setShowSummary(true);
 
-      // Animate the typing effect
       setIsTyping(true);
       let currentText = "";
       for (let i = 0; i < summary.length; i++) {
@@ -177,7 +200,6 @@ export function Workspace({
       }
       setIsTyping(false);
 
-      // Update the summary with the complete text
       setSummaries((prev) =>
         prev.map((s) =>
           s.id === formattedSummary.id ? { ...s, isAnimating: false } : s
@@ -189,6 +211,13 @@ export function Workspace({
       setSummarizing(false);
       setAnimatedContent("");
     }
+  };
+
+  const toggleSummary = async () => {
+    if (hasChanges) {
+      await handleSave();
+    }
+    setShowSummary(!showSummary);
   };
 
   if (isDeleted) {
@@ -205,20 +234,28 @@ export function Workspace({
         <div className="flex justify-between items-center px-4 py-2">
           <input
             type="text"
-            className="text-2xl font-bold bg-transparent text-white focus:outline-none"
+            className="text-2xl font-bold bg-transparent text-title font-body focus:outline-none"
             value={title}
             onChange={handleTitleChange}
             disabled={isSaving}
             placeholder="Note Title"
           />
           <div className="flex gap-2 items-center">
-            {isSaving && (
-              <span className="text-sm text-gray-500">Saving...</span>
+            {hasChanges && (
+              <Button
+                variant="outline"
+                className="text-title hover:text-white flex items-center gap-2 min-w-[100px] justify-center"
+                onClick={handleSave}
+                disabled={isSaving}
+              >
+                <Save size={16} />
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
             )}
             <Button
-              variant="ghost"
-              className="text-gray-400 hover:text-white"
-              onClick={() => setShowSummary(!showSummary)}
+              variant="default"
+              className="text-title hover:text-white"
+              onClick={toggleSummary}
             >
               <FileText size={16} className="mr-2" />
               Summaries

@@ -80,13 +80,13 @@ export default function Home() {
               <Link href="/login">
                 <Button
                   variant="outline"
-                  className="border-white text-white hover:text-black hover:bg-white"
+                  className="border-white text-black hover:bg-white font-body"
                 >
                   Login
                 </Button>
               </Link>
               <Link href="/signup">
-                <Button className="bg-[#3ECF8E] text-black hover:bg-[#34b87a]">
+                <Button className="bg-[#3ECF8E] text-black hover:bg-[#34b87a] font-body">
                   Sign Up
                 </Button>
               </Link>

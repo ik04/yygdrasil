@@ -1,7 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { PanelLeftClose, PanelLeftOpen, LogOut } from "lucide-react";
-import { createNote, getNotesForUser } from "@/app/services/notes";
+import {
+  PanelLeftClose,
+  PanelLeftOpen,
+  LogOut,
+  User,
+  Trash2,
+} from "lucide-react";
+import { createNote, getNotesForUser, deleteNote } from "@/app/services/notes";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -21,6 +27,7 @@ export function Sidebar({
   const router = useRouter();
   const [expanded, setExpanded] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -38,7 +45,18 @@ export function Sidebar({
     fetchNotes();
   }, [userId, setNotes]);
 
-  const handleCreateNote = async () => {
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+    };
+
+    getUser();
+  }, []);
+
+  const handleCreateNote = useCallback(async () => {
     try {
       const newNote: any = await createNote("New Note", "", userId);
       onSelectNote(newNote.id);
@@ -46,7 +64,19 @@ export function Sidebar({
     } catch (error) {
       console.error("Error creating note:", error);
     }
-  };
+  }, [userId, notes, setNotes, onSelectNote]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "o") {
+        e.preventDefault();
+        handleCreateNote();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleCreateNote]);
 
   const handleLogout = async () => {
     try {
@@ -61,6 +91,23 @@ export function Sidebar({
     } catch (error) {
       console.error("Error logging out:", error);
     }
+  };
+
+  const handleNoteDelete = async (e: React.MouseEvent, noteId: string) => {
+    e.stopPropagation(); // Prevent note selection when deleting
+    try {
+      await deleteNote(noteId);
+      setNotes(notes.filter((note) => note.id !== noteId));
+      onSelectNote(""); // Clear selected note
+    } catch (error) {
+      console.error("Error deleting note:", error);
+    }
+  };
+
+  const truncateTitle = (title: string, maxLength: number = 24) => {
+    return title.length > maxLength
+      ? `${title.substring(0, maxLength)}...`
+      : title;
   };
 
   return (
@@ -88,8 +135,19 @@ export function Sidebar({
         {expanded && (
           <>
             <div className="flex-1 space-y-4">
-              <Button className="w-full" onClick={handleCreateNote}>
-                + New Note
+              {user && (
+                <div className="flex items-center gap-2 px-2 py-1 text-sm text-gray-400 border-b border-gray-800">
+                  <User size={14} />
+                  <span className="truncate">{user.email?.split("@")[0]}</span>
+                </div>
+              )}
+
+              <Button
+                className="w-full flex items-center justify-center gap-2"
+                onClick={handleCreateNote}
+              >
+                <span>+ New Note</span>
+                <span className="text-xs text-gray-400">(Ctrl+O)</span>
               </Button>
 
               <div className="space-y-1 text-sm text-muted-foreground">
@@ -100,13 +158,26 @@ export function Sidebar({
                   <p>No notes available</p>
                 ) : (
                   notes.map((note) => (
-                    <button
+                    <div
                       key={note.id}
-                      onClick={() => onSelectNote(note.id)}
-                      className="block text-left text-gray-300 hover:bg-gray-800 hover:underline p-2 rounded"
+                      className="group flex items-center hover:bg-gray-800 rounded"
                     >
-                      {note.title}
-                    </button>
+                      <button
+                        onClick={() => onSelectNote(note.id)}
+                        className="flex-1 text-left text-gray-300 p-2 overflow-hidden"
+                      >
+                        <span className="block truncate">
+                          {truncateTitle(note.title || "New Note")}
+                        </span>
+                      </button>
+                      <button
+                        onClick={(e) => handleNoteDelete(e, note.id)}
+                        className="hidden group-hover:flex p-2 text-gray-400 hover:text-red-500"
+                        title="Delete note"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   ))
                 )}
               </div>

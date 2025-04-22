@@ -12,19 +12,16 @@ export default function DashboardPage() {
   const [notes, setNotes] = useState<any[]>([]);
   const router = useRouter();
 
-  // Add handlers for note updates
   const handleNoteUpdate = (noteId: string, title: string) => {
     setNotes((prevNotes) =>
       prevNotes.map((note) => (note.id === noteId ? { ...note, title } : note))
     );
   };
 
-  // Add handler for new notes
   const handleNewNote = (note: any) => {
     setNotes((prevNotes) => [...prevNotes, note]);
   };
 
-  // Add handler for note deletion
   const handleNoteDelete = (noteId: string) => {
     setNotes((prevNotes) => prevNotes.filter((note) => note.id !== noteId));
     setSelectedNoteId(null);
