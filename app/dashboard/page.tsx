@@ -10,6 +10,7 @@ export default function DashboardPage() {
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [notes, setNotes] = useState<any[]>([]);
+  const [isSidebarOpen, setSidebarOpen] = useState(true);
   const router = useRouter();
 
   const handleNoteUpdate = (noteId: string, title: string) => {
@@ -49,14 +50,16 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-black text-gray-300 flex">
+    <div className="h-screen overflow-hidden bg-black text-gray-300 flex flex-col md:flex-row">
       <Sidebar
         onSelectNote={setSelectedNoteId}
         userId={userId}
         notes={notes}
         setNotes={setNotes}
+        isOpen={isSidebarOpen}
+        onToggle={() => setSidebarOpen(!isSidebarOpen)}
       />
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-4 md:p-6 overflow-auto">
         <Workspace
           noteId={selectedNoteId}
           onUpdateNote={handleNoteUpdate}

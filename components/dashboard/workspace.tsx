@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
+import { useDebouncedCallback } from "@/hooks/useDebounce";
 import { Button } from "@/components/ui/button";
-import { FileText, X, Save } from "lucide-react";
+import { FileText, X, Save, Trash2 } from "lucide-react";
 import { updateNote, getNoteById, deleteNote } from "@/app/services/notes";
 import { createSummary, getSummariesForNote } from "@/app/services/summaries";
 import { useRouter } from "next/navigation";
@@ -41,31 +42,27 @@ export function Workspace({
   const [summarizing, setSummarizing] = useState(false);
   const [animatedContent, setAnimatedContent] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const saveChanges = async () => {
-      if (!note?.id || !hasChanges) return;
+  // Update the debounced save to not affect the UI state
+  const debouncedSave = useDebouncedCallback(
+    async (newTitle: string, newContent: string) => {
+      if (!noteId || !note) return;
 
       try {
-        setIsSaving(true);
-        await updateNote(note.id, title || "New Note", content);
-        setHasChanges(false);
+        await updateNote(noteId, newTitle || "New Note", newContent);
+        // Only update the note object, not the UI state
+        setNote((prev) =>
+          prev
+            ? { ...prev, title: newTitle || "New Note", content: newContent }
+            : null
+        );
       } catch (err) {
-        console.error("Failed to save changes:", err);
-      } finally {
-        setIsSaving(false);
+        setError("Failed to save changes");
       }
-    };
-
-    // Save changes before switching notes
-    return () => {
-      if (hasChanges) {
-        saveChanges();
-      }
-    };
-  }, [noteId]);
+    },
+    1000
+  );
 
   useEffect(() => {
     if (!noteId) {
@@ -77,19 +74,15 @@ export function Workspace({
       setSummaries([]);
       return;
     }
-    console.log(noteId);
 
     const fetchNote = async () => {
       try {
         const fetchedNote = await getNoteById(noteId);
-        console.log(fetchedNote);
-
         setNote(fetchedNote);
         setTitle(fetchedNote.title);
         setContent(fetchedNote.content);
         setError("");
         setIsDeleted(false);
-        setHasChanges(false); // Reset changes flag when loading new note
       } catch (err) {
         setError("Error fetching note");
       }
@@ -108,47 +101,22 @@ export function Workspace({
     loadSummaries();
   }, [noteId]);
 
-  const handleSave = useCallback(async () => {
-    if (!noteId || !note || !hasChanges) return;
-
-    try {
-      setIsSaving(true);
-      await updateNote(noteId, title || "New Note", content);
-      setNote((prev) =>
-        prev ? { ...prev, title: title || "New Note", content } : null
-      );
-      setHasChanges(false);
-      setError("");
-    } catch (err) {
-      setError("Failed to save changes");
-    } finally {
-      setIsSaving(false);
-    }
-  }, [noteId, note, title, content, hasChanges]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-        e.preventDefault();
-        handleSave();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleSave]);
-
+  // Update the change handlers to be more responsive
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
-    setHasChanges(true);
+    const newTitle = e.target.value;
+    setTitle(newTitle); // Update UI immediately
     if (noteId) {
-      onUpdateNote(noteId, e.target.value);
+      onUpdateNote(noteId, newTitle);
+      debouncedSave(newTitle, content);
     }
   };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setContent(e.target.value);
-    setHasChanges(true);
+    const newContent = e.target.value;
+    setContent(newContent); // Update UI immediately
+    if (noteId) {
+      debouncedSave(title, newContent);
+    }
   };
 
   const handleDelete = async () => {
@@ -214,9 +182,6 @@ export function Workspace({
   };
 
   const toggleSummary = async () => {
-    if (hasChanges) {
-      await handleSave();
-    }
     setShowSummary(!showSummary);
   };
 
@@ -229,64 +194,78 @@ export function Workspace({
   }
 
   return (
-    <div className="h-[90vh] flex">
-      <div className="flex-1 overflow-y-auto flex flex-col [&::-webkit-scrollbar]:hidden">
-        <div className="flex justify-between items-center px-4 py-2">
-          <input
-            type="text"
-            className="text-2xl font-bold bg-transparent text-title font-body focus:outline-none"
-            value={title}
-            onChange={handleTitleChange}
-            disabled={isSaving}
-            placeholder="Note Title"
+    <div className="h-[90vh] flex flex-col md:flex-row relative">
+      <div className="flex-1 flex flex-col relative">
+        <div className="flex-1 overflow-y-auto flex flex-col [&::-webkit-scrollbar]:hidden pb-16 md:pb-0">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center px-4 py-2 gap-2 bg-black/50 backdrop-blur-sm sticky top-0 z-10">
+            <input
+              type="text"
+              className="text-xl md:text-2xl font-bold bg-transparent text-title font-body focus:outline-none w-full md:w-auto"
+              value={title}
+              onChange={handleTitleChange}
+              placeholder="Note Title"
+            />
+          </div>
+
+          <textarea
+            className="flex-1 w-full bg-transparent text-white p-4 resize-none focus:outline-none [&::-webkit-scrollbar]:hidden"
+            value={content}
+            onChange={handleContentChange}
+            placeholder="Write your note here..."
           />
-          <div className="flex gap-2 items-center">
-            {hasChanges && (
-              <Button
-                variant="outline"
-                className="text-title hover:text-white flex items-center gap-2 min-w-[100px] justify-center"
-                onClick={handleSave}
-                disabled={isSaving}
-              >
-                <Save size={16} />
-                {isSaving ? "Saving..." : "Save"}
-              </Button>
+        </div>
+
+        <div className="hidden md:flex absolute top-2 right-4 gap-2 z-20">
+          <Button
+            variant="default"
+            className="text-title hover:text-white bg-black"
+            onClick={toggleSummary}
+          >
+            <FileText size={16} className="mr-2" />
+            Summaries
+          </Button>
+          <Button
+            variant="ghost"
+            className="text-red-500 hover:text-red-400 bg-black"
+            onClick={handleDelete}
+          >
+            <Trash2 size={16} className="mr-2" />
+            Delete
+          </Button>
+        </div>
+
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-black border-t border-gray-700 flex justify-between items-center md:hidden z-50">
+          <div className="flex items-center gap-2">
+            {isSaving && (
+              <span className="text-xs text-gray-400">Saving...</span>
             )}
+          </div>
+          <div className="flex gap-2">
             <Button
               variant="default"
-              className="text-title hover:text-white"
+              className="text-title hover:text-white bg-black"
               onClick={toggleSummary}
             >
-              <FileText size={16} className="mr-2" />
-              Summaries
+              <FileText size={16} />
             </Button>
             <Button
               variant="ghost"
-              className="text-red-500 hover:text-red-400"
+              className="text-red-500 hover:text-red-400 bg-black"
               onClick={handleDelete}
-              disabled={isSaving}
             >
-              Delete
+              <Trash2 size={16} />
             </Button>
           </div>
         </div>
-
-        <textarea
-          className="flex-1 w-full bg-transparent text-white p-4 resize-none focus:outline-none [&::-webkit-scrollbar]:hidden"
-          value={content}
-          onChange={handleContentChange}
-          disabled={isSaving}
-          placeholder="Write your note here..."
-        />
       </div>
 
       {showSummary && (
-        <div className="w-72 border-l border-gray-700 overflow-y-auto [&::-webkit-scrollbar]:hidden">
-          <div className="p-4 border-b border-gray-700 sticky top-0 bg-black z-10">
+        <div className="fixed md:static right-0 top-0 h-full w-full md:w-72 border-l border-gray-700 bg-black md:bg-transparent flex flex-col z-40 md:z-10">
+          <div className="p-4 border-b border-gray-700 bg-black sticky top-0">
             <div className="flex justify-between items-center">
               <h3 className="text-sm font-semibold text-gray-400">Summaries</h3>
               <Button
-                variant="default"
+                variant="ghost"
                 size="sm"
                 className="text-gray-400 hover:text-white"
                 onClick={() => setShowSummary(false)}
@@ -305,31 +284,36 @@ export function Workspace({
             </Button>
           </div>
 
-          <div className="divide-y divide-gray-700">
-            {summaries.map((summary) => (
-              <div key={summary.id} className="p-4">
-                <div className="text-xs text-gray-500 mb-2">
-                  {new Date(summary.created_at).toLocaleString()}
+          <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden">
+            <div className="divide-y divide-gray-700">
+              {summaries.map((summary) => (
+                <div key={summary.id} className="p-4">
+                  <div className="text-xs text-gray-500 mb-2">
+                    {new Date(summary.created_at).toLocaleString()}
+                  </div>
+                  <div className="text-sm text-gray-300 whitespace-pre-line">
+                    {(summary as AnimatedSummary).isAnimating
+                      ? animatedContent
+                      : summary.content}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-300 whitespace-pre-line">
-                  {(summary as AnimatedSummary).isAnimating
-                    ? animatedContent
-                    : summary.content}
+              ))}
+              {summaries.length === 0 && (
+                <div className="p-4 text-sm text-gray-500 text-center">
+                  No summaries yet
                 </div>
-              </div>
-            ))}
-            {summaries.length === 0 && (
-              <div className="p-4 text-sm text-gray-500 text-center">
-                No summaries yet
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}
 
+      {/* Error message */}
       {error && (
-        <div className="px-4 py-2">
-          <span className="text-red-500">{error}</span>
+        <div className="fixed bottom-20 left-4 right-4 md:bottom-4 z-60">
+          <span className="text-red-500 bg-black px-4 py-2 rounded-full">
+            {error}
+          </span>
         </div>
       )}
     </div>

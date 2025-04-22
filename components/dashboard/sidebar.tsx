@@ -16,6 +16,8 @@ type SidebarProps = {
   userId: string;
   notes: any[];
   setNotes: (notes: any[]) => void;
+  isOpen: boolean;
+  onToggle: () => void;
 };
 
 export function Sidebar({
@@ -23,9 +25,10 @@ export function Sidebar({
   userId,
   notes,
   setNotes,
+  isOpen,
+  onToggle,
 }: SidebarProps) {
   const router = useRouter();
-  const [expanded, setExpanded] = useState(true);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
 
@@ -110,29 +113,33 @@ export function Sidebar({
       : title;
   };
 
+  const handleNoteSelect = (noteId: string) => {
+    onSelectNote(noteId);
+    // Close sidebar on mobile only
+    if (window.innerWidth < 768) {
+      onToggle();
+    }
+  };
+
   return (
     <aside
-      className={`h-full ${
-        expanded ? "w-64" : "w-16"
-      } transition-all border-r border-gray-700 bg-black text-gray-300`}
+      className={`${
+        isOpen ? "w-64" : "w-0 md:w-16"
+      } fixed md:relative z-30 h-full transition-all border-r border-gray-700 bg-black text-gray-300`}
     >
       <div className="h-full flex flex-col p-4">
-        <Button
-          variant="default"
-          className="mb-4"
-          onClick={() => setExpanded(!expanded)}
-        >
-          {expanded ? (
+        <Button variant="default" className="mb-4" onClick={onToggle}>
+          {isOpen ? (
             <div className="flex items-center gap-1">
               <PanelLeftClose size={20} className="text-gray-300" />
-              <p className="capitalize">close</p>
+              <p className="capitalize md:block">close</p>
             </div>
           ) : (
             <PanelLeftOpen size={20} className="text-gray-300" />
           )}
         </Button>
 
-        {expanded && (
+        {isOpen && (
           <>
             <div className="flex-1 space-y-4">
               {user && (
@@ -163,7 +170,7 @@ export function Sidebar({
                       className="group flex items-center hover:bg-gray-800 rounded"
                     >
                       <button
-                        onClick={() => onSelectNote(note.id)}
+                        onClick={() => handleNoteSelect(note.id)}
                         className="flex-1 text-left text-gray-300 p-2 overflow-hidden"
                       >
                         <span className="block truncate">
