@@ -26,7 +26,7 @@ export function Workspace({
   const router = useRouter();
 
   const debouncedTitle = useDebounce(title, 1500);
-  const debouncedContent = useDebounce(content, 750);
+  const debouncedContent = useDebounce(content, 1000);
 
   useEffect(() => {
     if (!noteId) {
@@ -126,7 +126,7 @@ export function Workspace({
   }
 
   return (
-    <div className="h-[90vh] overflow-y-auto flex flex-col">
+    <div className="h-[90vh] overflow-y-auto flex flex-col [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:none]">
       <div className="flex justify-between items-center px-4 py-2">
         <input
           type="text"
@@ -149,9 +149,9 @@ export function Workspace({
         </div>
       </div>
 
-      <div className="flex-grow overflow-auto">
+      <div className="flex-grow overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:none]">
         <textarea
-          className="w-full h-full bg-transparent text-white p-4 resize-none focus:outline-none"
+          className="w-full h-full bg-transparent text-white p-4 resize-none focus:outline-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:none]"
           value={content}
           onChange={handleContentChange}
           disabled={isSaving}
