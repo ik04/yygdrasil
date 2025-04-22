@@ -12,6 +12,10 @@ type Summary = {
   created_at: string;
 };
 
+type AnimatedSummary = Summary & {
+  isAnimating?: boolean;
+};
+
 type WorkspaceProps = {
   noteId: string | null;
   onUpdateNote: (noteId: string, title: string) => void;
@@ -34,6 +38,8 @@ export function Workspace({
   const [showSummary, setShowSummary] = useState(false);
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [summarizing, setSummarizing] = useState(false);
+  const [animatedContent, setAnimatedContent] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const router = useRouter();
 
   const debouncedTitle = useDebounce(title, 2000);
@@ -151,17 +157,37 @@ export function Workspace({
 
       const { summary } = await response.json();
       const newSummary = await createSummary(noteId, summary);
-      const formattedSummary: Summary = {
+      const formattedSummary: AnimatedSummary = {
         id: newSummary.id,
         content: newSummary.content,
         created_at: newSummary.created_at,
+        isAnimating: true,
       };
+
       setSummaries((prev) => [formattedSummary, ...prev]);
       setShowSummary(true);
+
+      // Animate the typing effect
+      setIsTyping(true);
+      let currentText = "";
+      for (let i = 0; i < summary.length; i++) {
+        currentText += summary[i];
+        setAnimatedContent(currentText);
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+      setIsTyping(false);
+
+      // Update the summary with the complete text
+      setSummaries((prev) =>
+        prev.map((s) =>
+          s.id === formattedSummary.id ? { ...s, isAnimating: false } : s
+        )
+      );
     } catch (err) {
       setError("Failed to generate summary");
     } finally {
       setSummarizing(false);
+      setAnimatedContent("");
     }
   };
 
@@ -249,7 +275,9 @@ export function Workspace({
                   {new Date(summary.created_at).toLocaleString()}
                 </div>
                 <div className="text-sm text-gray-300 whitespace-pre-line">
-                  {summary.content}
+                  {(summary as AnimatedSummary).isAnimating
+                    ? animatedContent
+                    : summary.content}
                 </div>
               </div>
             ))}
