@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { updateNote, getNoteById, deleteNote } from "@/app/services/notes";
 import { useRouter } from "next/navigation";
+import { useDebounce } from "@/hooks/useDebounce";
 
 type WorkspaceProps = {
   noteId: string | null;
@@ -24,13 +25,16 @@ export function Workspace({
   const [error, setError] = useState("");
   const router = useRouter();
 
+  const debouncedTitle = useDebounce(title, 750);
+  const debouncedContent = useDebounce(content, 750);
+
   useEffect(() => {
     if (!noteId) {
       setNote(null);
       setTitle("");
       setContent("");
       setError("");
-      setIsDeleted(false); // Reset deleted state when switching notes
+      setIsDeleted(false);
       return;
     }
     console.log(noteId);
@@ -42,7 +46,7 @@ export function Workspace({
         setTitle(fetchedNote.title);
         setContent(fetchedNote.content);
         setError("");
-        setIsDeleted(false); // Reset deleted state when loading a new note
+        setIsDeleted(false);
       } catch (err) {
         setError("Error fetching note");
       }
@@ -51,16 +55,33 @@ export function Workspace({
     fetchNote();
   }, [noteId]);
 
-  const saveNote = async () => {
-    setIsSaving(true);
-    try {
-      await updateNote(noteId!, title, content);
-    } catch (err) {
-      setError("Error updating note");
-    } finally {
-      setIsSaving(false);
+  useEffect(() => {
+    if (!noteId || !note) return;
+
+    // Don't trigger save if the content matches the current note
+    if (debouncedTitle === note.title && debouncedContent === note.content) {
+      return;
     }
-  };
+
+    const autoSave = async () => {
+      try {
+        setIsSaving(true);
+        await updateNote(noteId, debouncedTitle, debouncedContent);
+        setNote((prev) =>
+          prev
+            ? { ...prev, title: debouncedTitle, content: debouncedContent }
+            : null
+        );
+        setError("");
+      } catch (err) {
+        setError("Failed to save changes");
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    autoSave();
+  }, [debouncedTitle, debouncedContent, noteId, note]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
@@ -80,7 +101,7 @@ export function Workspace({
         await deleteNote(noteId);
         onDeleteNote(noteId);
         setIsDeleted(true);
-        setNote(null); // Clear the note data after deletion
+        setNote(null);
         setTitle("");
         setContent("");
       } catch (err) {
@@ -108,7 +129,8 @@ export function Workspace({
           disabled={isSaving}
           placeholder="Note Title"
         />
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {isSaving && <span className="text-sm text-gray-500">Saving...</span>}
           <Button
             variant="outline"
             className="text-red-500"
@@ -116,14 +138,6 @@ export function Workspace({
             disabled={isSaving}
           >
             Delete
-          </Button>
-          <Button
-            variant="default"
-            className="text-white"
-            onClick={saveNote}
-            disabled={isSaving}
-          >
-            {isSaving ? "Saving..." : "Save"}
           </Button>
         </div>
       </div>
