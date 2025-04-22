@@ -6,22 +6,6 @@ import { updateNote, getNoteById, deleteNote } from "@/app/services/notes";
 import { createSummary, getSummariesForNote } from "@/app/services/summaries";
 import { useRouter } from "next/navigation";
 
-type Summary = {
-  id: string;
-  content: string;
-  created_at: string;
-};
-
-type AnimatedSummary = Summary & {
-  isAnimating?: boolean;
-};
-
-type WorkspaceProps = {
-  noteId: string | null;
-  onUpdateNote: (noteId: string, title: string) => void;
-  onDeleteNote: (noteId: string) => void;
-};
-
 export function Workspace({
   noteId,
   onUpdateNote,
@@ -44,14 +28,12 @@ export function Workspace({
   const [isTyping, setIsTyping] = useState(false);
   const router = useRouter();
 
-  // Update the debounced save to not affect the UI state
   const debouncedSave = useDebouncedCallback(
     async (newTitle: string, newContent: string) => {
       if (!noteId || !note) return;
 
       try {
         await updateNote(noteId, newTitle || "New Note", newContent);
-        // Only update the note object, not the UI state
         setNote((prev) =>
           prev
             ? { ...prev, title: newTitle || "New Note", content: newContent }
@@ -101,10 +83,9 @@ export function Workspace({
     loadSummaries();
   }, [noteId]);
 
-  // Update the change handlers to be more responsive
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
-    setTitle(newTitle); // Update UI immediately
+    setTitle(newTitle);
     if (noteId) {
       onUpdateNote(noteId, newTitle);
       debouncedSave(newTitle, content);
@@ -113,7 +94,7 @@ export function Workspace({
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newContent = e.target.value;
-    setContent(newContent); // Update UI immediately
+    setContent(newContent);
     if (noteId) {
       debouncedSave(title, newContent);
     }

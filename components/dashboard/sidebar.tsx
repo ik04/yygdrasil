@@ -11,15 +11,6 @@ import { createNote, getNotesForUser, deleteNote } from "@/app/services/notes";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
-type SidebarProps = {
-  onSelectNote: (id: string) => void;
-  userId: string;
-  notes: any[];
-  setNotes: (notes: any[]) => void;
-  isOpen: boolean;
-  onToggle: () => void;
-};
-
 export function Sidebar({
   onSelectNote,
   userId,
