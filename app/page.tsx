@@ -101,10 +101,7 @@ export default function Home() {
           ) : (
             <>
               <Link href="/login" className="w-full md:w-auto">
-                <Button
-                  variant="outline"
-                  className="w-full border-white text-white hover:bg-white hover:text-black font-body text-sm md:text-base"
-                >
+                <Button className="w-full border-white text-white hover:bg-white hover:text-black font-body text-sm md:text-base">
                   Login
                 </Button>
               </Link>
