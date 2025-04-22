@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     const { content } = await request.json();
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-    const prompt = `Please summarize the following note in 3-4 clear, concise bullet points:
+    const prompt = `Please summarize the following note in 3-4 clear without using markdown or bold and italics, concise bullet points:
 
 ${content}`;
 
