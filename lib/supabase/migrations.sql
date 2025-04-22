@@ -12,6 +12,6 @@ create table notes (
 create table summaries (
   id uuid primary key default gen_random_uuid(),
   note_id uuid references notes(id) on delete cascade,
-  summary text,
+  content text,
   created_at timestamp default now()
 );

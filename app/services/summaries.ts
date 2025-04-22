@@ -9,6 +9,7 @@ export const createSummary = async (noteId: string, content: string) => {
         content,
       },
     ])
+    .select("id, created_at, content")
     .single();
   if (error) throw new Error(error.message);
   return data;
