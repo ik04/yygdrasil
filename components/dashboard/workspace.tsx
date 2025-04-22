@@ -208,7 +208,7 @@ export function Workspace({
           </div>
 
           <textarea
-            className="flex-1 w-full bg-transparent text-white p-4 resize-none focus:outline-none [&::-webkit-scrollbar]:hidden"
+            className="flex-1 w-full bg-transparent text-white p-4 resize-none focus:outline-none [&::-webkit-scrollbar]:hidden font-body"
             value={content}
             onChange={handleContentChange}
             placeholder="Write your note here..."
