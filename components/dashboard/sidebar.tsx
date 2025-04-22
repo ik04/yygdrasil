@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, LogOut } from "lucide-react";
 import { createNote, getNotesForUser } from "@/app/services/notes";
+import { supabase } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 type SidebarProps = {
   onSelectNote: (id: string) => void;
@@ -16,6 +18,7 @@ export function Sidebar({
   notes,
   setNotes,
 }: SidebarProps) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(true);
   const [loading, setLoading] = useState(true);
 
@@ -45,6 +48,21 @@ export function Sidebar({
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+
+      setNotes([]);
+      onSelectNote("");
+
+      router.push("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
+
   return (
     <aside
       className={`h-full ${
@@ -68,30 +86,41 @@ export function Sidebar({
         </Button>
 
         {expanded && (
-          <div className="space-y-4">
-            <Button className="w-full" onClick={handleCreateNote}>
-              + New Note
-            </Button>
+          <>
+            <div className="flex-1 space-y-4">
+              <Button className="w-full" onClick={handleCreateNote}>
+                + New Note
+              </Button>
 
-            <div className="space-y-1 text-sm text-muted-foreground">
-              <p className="text-xs text-muted-foreground">My Notes</p>
-              {loading ? (
-                <p>Loading...</p>
-              ) : notes.length === 0 ? (
-                <p>No notes available</p>
-              ) : (
-                notes.map((note) => (
-                  <button
-                    key={note.id}
-                    onClick={() => onSelectNote(note.id)}
-                    className="block text-left text-gray-300 hover:bg-gray-800 hover:underline p-2 rounded"
-                  >
-                    {note.title}
-                  </button>
-                ))
-              )}
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">My Notes</p>
+                {loading ? (
+                  <p>Loading...</p>
+                ) : notes.length === 0 ? (
+                  <p>No notes available</p>
+                ) : (
+                  notes.map((note) => (
+                    <button
+                      key={note.id}
+                      onClick={() => onSelectNote(note.id)}
+                      className="block text-left text-gray-300 hover:bg-gray-800 hover:underline p-2 rounded"
+                    >
+                      {note.title}
+                    </button>
+                  ))
+                )}
+              </div>
             </div>
-          </div>
+
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className="mt-auto text-gray-400 hover:text-white flex items-center gap-2"
+            >
+              <LogOut size={16} />
+              Logout
+            </Button>
+          </>
         )}
       </div>
     </aside>

@@ -3,6 +3,7 @@
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -34,7 +35,15 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-6 bg-black text-white">
       <div className="w-full max-w-md space-y-6">
-        <h1 className="text-3xl font-bold text-[#3ECF8E]">Sign Up</h1>
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold text-[#3ECF8E]">Sign Up</h1>
+          <p className="text-sm text-gray-400">
+            Already have an account?{" "}
+            <Link href="/login" className="underline text-[#3ECF8E]">
+              Log in
+            </Link>
+          </p>
+        </div>
 
         <div className="space-y-4">
           <Input
@@ -55,13 +64,22 @@ export default function SignupPage() {
           </Button>
         </div>
 
-        <Separator className="bg-gray-700" />
+        <Separator className="my-6 bg-gray-700" />
+
         <Button
           variant="outline"
-          className="w-full"
+          className="w-full text-black"
           onClick={handleGoogleLogin}
         >
           Continue with Google
+        </Button>
+
+        <Button
+          variant="ghost"
+          className="w-full text-sm text-gray-400"
+          onClick={() => router.back()}
+        >
+          ← Back
         </Button>
       </div>
     </div>

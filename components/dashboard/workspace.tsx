@@ -25,8 +25,8 @@ export function Workspace({
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const debouncedTitle = useDebounce(title, 1500);
-  const debouncedContent = useDebounce(content, 1000);
+  const debouncedTitle = useDebounce(title, 2000);
+  const debouncedContent = useDebounce(content, 1200);
 
   useEffect(() => {
     if (!noteId) {
