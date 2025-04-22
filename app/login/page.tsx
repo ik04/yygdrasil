@@ -69,7 +69,7 @@ export default function LoginPage() {
 
         <Button
           variant="outline"
-          className="w-full text-black"
+          className="w-full text-black flex items-center justify-center gap-2"
           onClick={handleGoogleLogin}
         >
           <GoogleIcon className="w-5 h-5" />
