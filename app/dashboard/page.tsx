@@ -24,6 +24,12 @@ export default function DashboardPage() {
     setNotes((prevNotes) => [...prevNotes, note]);
   };
 
+  // Add handler for note deletion
+  const handleNoteDelete = (noteId: string) => {
+    setNotes((prevNotes) => prevNotes.filter((note) => note.id !== noteId));
+    setSelectedNoteId(null);
+  };
+
   useEffect(() => {
     const checkUserSession = async () => {
       const {
@@ -54,7 +60,11 @@ export default function DashboardPage() {
         setNotes={setNotes}
       />
       <main className="flex-1 p-6">
-        <Workspace noteId={selectedNoteId} onUpdateNote={handleNoteUpdate} />
+        <Workspace
+          noteId={selectedNoteId}
+          onUpdateNote={handleNoteUpdate}
+          onDeleteNote={handleNoteDelete}
+        />
       </main>
     </div>
   );

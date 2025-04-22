@@ -6,9 +6,14 @@ import { useRouter } from "next/navigation";
 type WorkspaceProps = {
   noteId: string | null;
   onUpdateNote: (noteId: string, title: string) => void;
+  onDeleteNote: (noteId: string) => void;
 };
 
-export function Workspace({ noteId, onUpdateNote }: WorkspaceProps) {
+export function Workspace({
+  noteId,
+  onUpdateNote,
+  onDeleteNote,
+}: WorkspaceProps) {
   const [note, setNote] = useState<{ title: string; content: string } | null>(
     null
   );
@@ -25,6 +30,7 @@ export function Workspace({ noteId, onUpdateNote }: WorkspaceProps) {
       setTitle("");
       setContent("");
       setError("");
+      setIsDeleted(false); // Reset deleted state when switching notes
       return;
     }
     console.log(noteId);
@@ -36,6 +42,7 @@ export function Workspace({ noteId, onUpdateNote }: WorkspaceProps) {
         setTitle(fetchedNote.title);
         setContent(fetchedNote.content);
         setError("");
+        setIsDeleted(false); // Reset deleted state when loading a new note
       } catch (err) {
         setError("Error fetching note");
       }
@@ -71,8 +78,11 @@ export function Workspace({ noteId, onUpdateNote }: WorkspaceProps) {
     if (noteId) {
       try {
         await deleteNote(noteId);
+        onDeleteNote(noteId);
         setIsDeleted(true);
-        router.refresh();
+        setNote(null); // Clear the note data after deletion
+        setTitle("");
+        setContent("");
       } catch (err) {
         setError("Error deleting note");
       }
