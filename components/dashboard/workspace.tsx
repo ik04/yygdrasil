@@ -25,7 +25,7 @@ export function Workspace({
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const debouncedTitle = useDebounce(title, 750);
+  const debouncedTitle = useDebounce(title, 1500);
   const debouncedContent = useDebounce(content, 750);
 
   useEffect(() => {
@@ -58,20 +58,28 @@ export function Workspace({
   useEffect(() => {
     if (!noteId || !note) return;
 
+    // Set default title if empty after debounce
+    const finalTitle = debouncedTitle || "New Note";
+
     // Don't trigger save if the content matches the current note
-    if (debouncedTitle === note.title && debouncedContent === note.content) {
+    if (finalTitle === note.title && debouncedContent === note.content) {
       return;
     }
 
     const autoSave = async () => {
       try {
         setIsSaving(true);
-        await updateNote(noteId, debouncedTitle, debouncedContent);
+        await updateNote(noteId, finalTitle, debouncedContent);
         setNote((prev) =>
           prev
-            ? { ...prev, title: debouncedTitle, content: debouncedContent }
+            ? { ...prev, title: finalTitle, content: debouncedContent }
             : null
         );
+        // Update the title state if it was empty
+        if (!debouncedTitle) {
+          setTitle("New Note");
+          onUpdateNote(noteId, "New Note");
+        }
         setError("");
       } catch (err) {
         setError("Failed to save changes");
@@ -81,13 +89,12 @@ export function Workspace({
     };
 
     autoSave();
-  }, [debouncedTitle, debouncedContent, noteId, note]);
+  }, [debouncedTitle, debouncedContent, noteId, note, onUpdateNote]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTitle = e.target.value;
-    setTitle(newTitle);
+    setTitle(e.target.value);
     if (noteId) {
-      onUpdateNote(noteId, newTitle);
+      onUpdateNote(noteId, e.target.value);
     }
   };
 

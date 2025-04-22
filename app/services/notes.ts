@@ -8,23 +8,21 @@ export const createNote = async (
 ) => {
   console.log("Creating note with title:", title, "and userId:", userId);
 
-  const query = await supabase
+  const { data, error } = await supabase
     .from("notes")
     .insert([{ title, content, user_id: userId }])
     .select("id")
-    .single(); // Ensure we're expecting a single row
-  console.log("Data returned from Supabase:", query);
-  // if (error) {
-  //   throw new Error(error.message);
-  // }
+    .single();
+  if (error) {
+    throw new Error(error.message);
+  }
 
-  // if (!data) {
-  //   throw new Error("Failed to create note, no data returned");
-  // }
-  return query.data;
+  if (!data) {
+    throw new Error("Failed to create note, no data returned");
+  }
+  return data;
 };
 
-// Get a Note by ID
 export const getNoteById = async (noteId: string) => {
   const { data, error } = await supabase
     .from("notes")
@@ -46,7 +44,6 @@ export const getNotesForUser = async (userId: string) => {
   return data;
 };
 
-// Update a Note
 export const updateNote = async (
   noteId: string,
   title: string,
@@ -61,7 +58,6 @@ export const updateNote = async (
   return data;
 };
 
-// Delete a Note
 export const deleteNote = async (noteId: string) => {
   const { data, error } = await supabase
     .from("notes")
