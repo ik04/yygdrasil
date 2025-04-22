@@ -127,22 +127,18 @@ export function Sidebar({
         isOpen ? "w-64" : "w-0 md:w-16"
       } fixed md:relative z-30 h-full transition-all border-r border-gray-700 bg-black text-gray-300`}
     >
-      <Button
-        variant="default"
-        className="absolute right-[-40px] top-2"
-        onClick={onToggle}
-      >
-        {isOpen ? (
-          <div className="flex items-center gap-1">
-            <PanelLeftClose size={20} className="text-gray-300" />
-            <p className="capitalize md:block">close</p>
-          </div>
-        ) : (
-          <PanelLeftOpen size={20} className="text-gray-300" />
-        )}
-      </Button>
-
       <div className="h-full flex flex-col p-4">
+        <Button variant="default" className="mb-4" onClick={onToggle}>
+          {isOpen ? (
+            <div className="flex items-center gap-1">
+              <PanelLeftClose size={20} className="text-gray-300" />
+              <p className="capitalize md:block">close</p>
+            </div>
+          ) : (
+            <PanelLeftOpen size={20} className="text-gray-300" />
+          )}
+        </Button>
+
         {isOpen && (
           <>
             <div className="flex-1 space-y-4">
