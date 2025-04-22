@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { GoogleIcon } from "@/components/icons/google";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -71,6 +72,7 @@ export default function LoginPage() {
           className="w-full text-black"
           onClick={handleGoogleLogin}
         >
+          <GoogleIcon className="w-5 h-5" />
           Continue with Google
         </Button>
 

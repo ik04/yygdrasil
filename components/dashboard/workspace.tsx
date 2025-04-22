@@ -249,7 +249,7 @@ export function Workspace({
             <div className="flex justify-between items-center">
               <h3 className="text-sm font-semibold text-gray-400">Summaries</h3>
               <Button
-                variant="ghost"
+                variant="default"
                 size="sm"
                 className="text-gray-400 hover:text-white"
                 onClick={() => setShowSummary(false)}
