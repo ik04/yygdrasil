@@ -1,39 +1,132 @@
-"use client";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { updateNote, getNoteById, deleteNote } from "@/app/services/notes";
+import { useRouter } from "next/navigation";
 
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase/client";
+type WorkspaceProps = {
+  noteId: string | null;
+  onUpdateNote: (noteId: string, title: string) => void;
+};
 
-export function Workspace({ noteId }: { noteId: string | null }) {
-  const { data: note, isLoading } = useQuery({
-    queryKey: ["note", noteId],
-    enabled: !!noteId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("notes")
-        .select("*")
-        .eq("id", noteId)
-        .single();
-      if (error) throw new Error(error.message);
-      return data;
-    },
-  });
+export function Workspace({ noteId, onUpdateNote }: WorkspaceProps) {
+  const [note, setNote] = useState<{ title: string; content: string } | null>(
+    null
+  );
+  const [isSaving, setIsSaving] = useState(false);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [isDeleted, setIsDeleted] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
 
-  if (!noteId) {
-    return (
-      <div className="flex items-center justify-center h-full bg-black text-gray-300 rounded-xl border border-gray-700">
-        <p className="text-muted-foreground text-xl">Select or create a note</p>
-      </div>
-    );
+  useEffect(() => {
+    if (!noteId) {
+      setNote(null);
+      setTitle("");
+      setContent("");
+      setError("");
+      return;
+    }
+    console.log(noteId);
+
+    const fetchNote = async () => {
+      try {
+        const fetchedNote = await getNoteById(noteId);
+        setNote(fetchedNote);
+        setTitle(fetchedNote.title);
+        setContent(fetchedNote.content);
+        setError("");
+      } catch (err) {
+        setError("Error fetching note");
+      }
+    };
+
+    fetchNote();
+  }, [noteId]);
+
+  const saveNote = async () => {
+    setIsSaving(true);
+    try {
+      await updateNote(noteId!, title, content);
+    } catch (err) {
+      setError("Error updating note");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = e.target.value;
+    setTitle(newTitle);
+    if (noteId) {
+      onUpdateNote(noteId, newTitle);
+    }
+  };
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(e.target.value);
+  };
+
+  const handleDelete = async () => {
+    if (noteId) {
+      try {
+        await deleteNote(noteId);
+        setIsDeleted(true);
+        router.refresh();
+      } catch (err) {
+        setError("Error deleting note");
+      }
+    }
+  };
+
+  if (isDeleted) {
+    return <div className="text-red-500">Note has been deleted.</div>;
   }
 
-  if (isLoading) return <p className="text-gray-300">Loading...</p>;
+  if (!note) {
+    return <div>No Note Selected</div>;
+  }
 
   return (
-    <div className="space-y-4 text-gray-300 bg-black p-6 rounded-xl border border-gray-700">
-      <h2 className="text-2xl font-bold">{note.title}</h2>
-      <p className="text-muted-foreground whitespace-pre-wrap">
-        {note.content}
-      </p>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <input
+          type="text"
+          className="text-2xl font-bold bg-transparent text-white border-b-2 border-gray-500"
+          value={title}
+          onChange={handleTitleChange}
+          disabled={isSaving}
+          placeholder="Note Title"
+        />
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="text-red-500"
+            onClick={handleDelete}
+            disabled={isSaving}
+          >
+            Delete
+          </Button>
+          <Button
+            variant="default"
+            className="text-white"
+            onClick={saveNote}
+            disabled={isSaving}
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </Button>
+        </div>
+      </div>
+
+      <textarea
+        className="w-full h-72 bg-transparent text-white border-b-2 border-gray-500"
+        value={content}
+        onChange={handleContentChange}
+        disabled={isSaving}
+        placeholder="Write your note here..."
+      />
+
+      {error && <span className="text-red-500">{error}</span>}
     </div>
   );
 }

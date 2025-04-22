@@ -6,11 +6,17 @@ import { createNote, getNotesForUser } from "@/app/services/notes";
 type SidebarProps = {
   onSelectNote: (id: string) => void;
   userId: string;
+  notes: any[];
+  setNotes: (notes: any[]) => void;
 };
 
-export function Sidebar({ onSelectNote, userId }: SidebarProps) {
+export function Sidebar({
+  onSelectNote,
+  userId,
+  notes,
+  setNotes,
+}: SidebarProps) {
   const [expanded, setExpanded] = useState(true);
-  const [notes, setNotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,13 +33,13 @@ export function Sidebar({ onSelectNote, userId }: SidebarProps) {
     };
 
     fetchNotes();
-  }, [userId]);
+  }, [userId, setNotes]);
 
   const handleCreateNote = async () => {
     try {
       const newNote: any = await createNote("New Note", "", userId);
       onSelectNote(newNote.id);
-      setNotes([...notes, newNote]); // Add the new note to local state
+      setNotes([...notes, newNote]);
     } catch (error) {
       console.error("Error creating note:", error);
     }
