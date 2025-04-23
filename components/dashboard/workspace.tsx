@@ -289,7 +289,6 @@ export function Workspace({
         </div>
       )}
 
-      {/* Error message */}
       {error && (
         <div className="fixed bottom-20 left-4 right-4 md:bottom-4 z-60">
           <span className="text-red-500 bg-black px-4 py-2 rounded-full">
